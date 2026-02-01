@@ -19,10 +19,10 @@ This entire project was built using [Claude Code](https://claude.ai/code) + [Dat
 ### Step 1: Install Claude Code
 
 ```bash
-npm install -g @anthropic-ai/claude-code
+curl -fsSL https://claude.ai/install.sh | bash
 ```
 
-Requires Node.js 18+ and an Anthropic API key or Claude Pro/Max subscription. See [Claude Code docs](https://docs.anthropic.com/en/docs/claude-code) for details.
+See [Claude Code docs](https://docs.anthropic.com/en/docs/claude-code) for details.
 
 ### Step 2: Initialize a git repo
 
