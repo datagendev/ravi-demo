@@ -122,6 +122,115 @@ Tool aliases used:
 - `get_linkedin_person_post_repost` -- get all reposts (manual pagination)
 - `get_linkedin_person_data` -- enrich a profile by LinkedIn URL
 
-## Deploying to DataGen
+## How This Was Built (Step-by-Step)
 
-To run this on a schedule without a local machine, deploy as a DataGen custom tool. The script is designed to be portable -- the only local-only piece is `sent_leads.json`. For the deployed version, swap the local JSON file for a Google Sheet "Sent Leads" tab or a database table for persistent dedup tracking.
+This entire project was built using [Claude Code](https://claude.ai/code) + [DataGen](https://datagen.dev). Here's the exact workflow to reproduce it from scratch.
+
+### Step 1: Initialize a git repo
+
+```bash
+mkdir my-engager-tracker && cd my-engager-tracker
+git init
+```
+
+### Step 2: Install the DataGen CLI
+
+```bash
+curl -fsSL https://cli.datagen.dev/install.sh | sh
+```
+
+See [datagendev/datagen-cli](https://github.com/datagendev/datagen-cli) for details.
+
+### Step 3: Log in and add DataGen MCP to Claude Code
+
+```bash
+datagen login
+datagen mcp
+```
+
+This authenticates your DataGen account and registers the DataGen MCP server with Claude Code, giving it access to 1000+ tools (LinkedIn, Google Sheets, Gmail, Slack, etc.).
+
+### Step 4: Install the DataGen Python SDK
+
+Inside Claude Code, run the slash command:
+
+```
+/datagen:install-datagen-python-sdk
+```
+
+This installs the `datagen-python-sdk` package into your project's virtual environment. The SDK lets you call any DataGen tool from local Python scripts via `client.execute_tool("tool_name", params)`.
+
+This is a **one-time setup** -- after this, you can use any DataGen tool from code.
+
+### Step 5: Describe what you want in Claude Code (plan mode)
+
+Press `Shift+Tab` twice to enter **plan mode**, then describe the task:
+
+```
+ok i have a google sheet like https://docs.google.com/spreadsheets/d/15-rdA0CoTX19ZncbBMUteXlFRsBUuNF9V2ztJFgVd40/edit?gid=0#gid=0 .
+it contains a company's post they want to track. and we want to send it to clay with this webhook
+https://api.clay.com/v3/sources/webhook/pull-in-data-from-a-webhook-d523bf83-f52e-4214-be06-6a17302f3511 .
+so idea is every week you would come in and scrape all the engager of these posts. and extract them
+as lead list, make sure to not send repetitive lead or lead already sent before. you can use our
+datagen linkedin tool for enrichment i think. go look it up. and we'd like to deploy this as an
+agent in datagen, so you dont need to worry about the cron job part. just focusing on how to do
+the doc pull, enrichment(at scale) and send to webhook part. also list all the unique engager as
+a csv file here.
+```
+
+Claude Code will:
+- Fetch the Google Sheet to understand the data
+- Search DataGen for the right LinkedIn tools (`searchTools`, `getToolDetails`)
+- Design the pipeline architecture
+- Present a plan for your approval
+
+### Step 6: Claude Code writes the script and iterates with you
+
+After approving the plan, Claude Code:
+- Writes `engager_tracker.py` with the full pipeline
+- Asks clarifying questions (post type, enrichment strategy, etc.)
+- You refine together (e.g. "always use `get_linkedin_person_data`, don't use `search_linkedin_person`")
+
+### Step 7: Test with a small batch
+
+```bash
+python -u engager_tracker.py 5
+```
+
+Review the output, fix any issues (e.g. Clay 413 payload too large -- batch it), and iterate until it works end-to-end.
+
+### Step 8: Create a Claude Code agent
+
+Inside Claude Code, run:
+
+```
+/agents
+```
+
+This creates an agent definition in `.claude/agents/` that knows how to operate your pipeline -- where to pull posts, how enrichment works, error handling, batch trade-offs, and reporting format. The agent can be invoked by anyone with access to the repo.
+
+### Step 9: Deploy as a DataGen agent
+
+1. Push your repo to GitHub:
+   ```bash
+   gh repo create your-org/your-repo --public --source=. --push
+   ```
+
+2. Go to [datagen.dev/signalgen/agents](https://datagen.dev/signalgen/agents)
+
+3. Connect your GitHub repo (e.g. `https://github.com/datagendev/ravi-demo`)
+
+4. DataGen reads the agent definition and makes it available as a hosted agent.
+
+### Step 10: Schedule weekly runs
+
+In the DataGen agent dashboard, set a **weekly schedule** (e.g. every Monday at 9am). The agent will:
+- Pull fresh post URLs from the Google Sheet
+- Scrape new engagers since the last run
+- Skip anyone already sent (dedup)
+- Enrich and deliver new leads to Clay
+- No local machine needed
+
+---
+
+That's it -- from `git init` to a production weekly pipeline in one session with Claude Code + DataGen.
