@@ -16,14 +16,22 @@ Scrapes all engagers (reactions, comments, reposts) from LinkedIn posts listed i
 
 This entire project was built using [Claude Code](https://claude.ai/code) + [DataGen](https://datagen.dev). Here's the exact workflow to reproduce it from scratch.
 
-### Step 1: Initialize a git repo
+### Step 1: Install Claude Code
+
+```bash
+npm install -g @anthropic-ai/claude-code
+```
+
+Requires Node.js 18+ and an Anthropic API key or Claude Pro/Max subscription. See [Claude Code docs](https://docs.anthropic.com/en/docs/claude-code) for details.
+
+### Step 2: Initialize a git repo
 
 ```bash
 mkdir my-engager-tracker && cd my-engager-tracker
 git init
 ```
 
-### Step 2: Install the DataGen CLI
+### Step 3: Install the DataGen CLI
 
 ```bash
 curl -fsSL https://cli.datagen.dev/install.sh | sh
@@ -31,7 +39,7 @@ curl -fsSL https://cli.datagen.dev/install.sh | sh
 
 See [datagendev/datagen-cli](https://github.com/datagendev/datagen-cli) for details.
 
-### Step 3: Log in and add DataGen MCP to Claude Code
+### Step 4: Log in and add DataGen MCP to Claude Code
 
 ```bash
 datagen login
@@ -40,7 +48,7 @@ datagen mcp
 
 This authenticates your DataGen account and registers the DataGen MCP server with Claude Code, giving it access to 1000+ tools (LinkedIn, Google Sheets, Gmail, Slack, etc.).
 
-### Step 4: Install the DataGen Python SDK
+### Step 5: Install the DataGen Python SDK
 
 Inside Claude Code, run the slash command:
 
@@ -52,7 +60,7 @@ This installs the `datagen-python-sdk` package into your project's virtual envir
 
 This is a **one-time setup** -- after this, you can use any DataGen tool from code.
 
-### Step 5: Describe what you want in Claude Code (plan mode)
+### Step 6: Describe what you want in Claude Code (plan mode)
 
 Press `Shift+Tab` twice to enter **plan mode**, then describe the task:
 
@@ -74,14 +82,14 @@ Claude Code will:
 - Design the pipeline architecture
 - Present a plan for your approval
 
-### Step 6: Claude Code writes the script and iterates with you
+### Step 7: Claude Code writes the script and iterates with you
 
 After approving the plan, Claude Code:
 - Writes `engager_tracker.py` with the full pipeline
 - Asks clarifying questions (post type, enrichment strategy, etc.)
 - You refine together (e.g. "always use `get_linkedin_person_data`, don't use `search_linkedin_person`")
 
-### Step 7: Test with a small batch
+### Step 8: Test with a small batch
 
 ```bash
 python -u engager_tracker.py 5
@@ -89,7 +97,7 @@ python -u engager_tracker.py 5
 
 Review the output, fix any issues (e.g. Clay 413 payload too large -- batch it), and iterate until it works end-to-end.
 
-### Step 8: Create a Claude Code agent
+### Step 9: Create a Claude Code agent
 
 Inside Claude Code, run:
 
@@ -99,7 +107,7 @@ Inside Claude Code, run:
 
 This creates an agent definition in `.claude/agents/` that knows how to operate your pipeline -- where to pull posts, how enrichment works, error handling, batch trade-offs, and reporting format. The agent can be invoked by anyone with access to the repo.
 
-### Step 9: Deploy as a DataGen agent
+### Step 10: Deploy as a DataGen agent
 
 1. Push your repo to GitHub:
    ```bash
@@ -112,7 +120,7 @@ This creates an agent definition in `.claude/agents/` that knows how to operate 
 
 4. DataGen reads the agent definition and makes it available as a hosted agent.
 
-### Step 10: Schedule weekly runs
+### Step 11: Schedule weekly runs
 
 In the DataGen agent dashboard, set a **weekly schedule** (e.g. every Monday at 9am). The agent will:
 - Pull fresh post URLs from the Google Sheet
